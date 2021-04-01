@@ -54,8 +54,8 @@ all: main-build
 main-build: DemoProjekt.elf secondary-outputs
 
 # Tool invocations
-DemoProjekt.elf: $(OBJS) $(USER_OBJS) C:\Users\Max\STM32CubeIDE\Mikrocontrollerpraktikum\DemoProjekt\STM32F051R8TX_FLASH.ld
-	arm-none-eabi-gcc -o "DemoProjekt.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\Max\STM32CubeIDE\Mikrocontrollerpraktikum\DemoProjekt\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="DemoProjekt.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+DemoProjekt.elf: $(OBJS) $(USER_OBJS) C:\Users\Dodo\Documents\thermostat_neu\DemoProjekt\STM32F051R8TX_FLASH.ld
+	arm-none-eabi-gcc -o "DemoProjekt.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Users\Dodo\Documents\thermostat_neu\DemoProjekt\STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="DemoProjekt.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
