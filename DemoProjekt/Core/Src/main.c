@@ -45,7 +45,7 @@ I2C_HandleTypeDef hi2c1;
 /* USER CODE BEGIN PV */
 unsigned char buffer[5];
 float currentTemp;
-float threshold;
+float threshold = -999;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +96,6 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_I2C1_Init();
-
 	/* USER CODE BEGIN 2 */
 
 	//AHT20 Temperature and humidity sensor initialisation
@@ -116,27 +115,25 @@ int main(void)
 		//Trigger measurement
 		HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, triggerBuffer, sizeof(triggerBuffer), 100);
 
-		//Wait for measurement
-		HAL_Delay(100);
-
 		//Receive measurement data
-		HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, readBuffer, sizeof(readBuffer), 100);
-		if (!(stateByte >> 7 & 0x01)){
-			outputTemp = (readBuffer[3]&0x0F)<<16 | readBuffer[4]<<8 | readBuffer[5];
+		do {
+			HAL_Delay(80); //wait for measurement
+			HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, readBuffer, sizeof(readBuffer), 100); //read sensor data
+		} while ((readBuffer[0] >> 7 & 0x01)); //continue waiting if measurement not completed in time
 
-			//Calculate temperature in °C
-			currentTemp = (((float)outputTemp/1048576) * 200) - 50;
-		}
-
-
+		outputTemp = (readBuffer[3]&0x0F)<<16 | readBuffer[4]<<8 | readBuffer[5];
+		//Calculate temperature in °C
+		currentTemp = (((float)outputTemp/1048576) * 200) - 50;
 
 		//check temperature
 		if (currentTemp < threshold) //wenn gemessene Temperatur unter Schwellwert, LED blinken lassen
 		{
-			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET); //Blaue LED an
-			HAL_Delay(500);
-			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET); //Blaue LED aus
-			HAL_Delay(500);
+			for (int i = 0; i < 2; i++) {
+				HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET); //Blaue LED an
+				HAL_Delay(500);
+				HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET); //Blaue LED aus
+				HAL_Delay(500);
+			}
 		}
 
 		/* USER CODE END WHILE */
@@ -246,18 +243,12 @@ static void MX_GPIO_Init(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
 	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOC, LD4_Pin|LD3_Pin, GPIO_PIN_RESET);
-
-	/*Configure GPIO pin : EinInput_Pin */
-	GPIO_InitStruct.Pin = EinInput_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(EinInput_GPIO_Port, &GPIO_InitStruct);
 
 	/*Configure GPIO pin : B1_Pin */
 	GPIO_InitStruct.Pin = B1_Pin;
