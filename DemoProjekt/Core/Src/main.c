@@ -84,7 +84,14 @@ int main(void)
 	initBuffer[2] = 0x00;
 	uint8_t ansByte;
 	uint32_t rawTemp;
-
+	uint8_t readBuffer[7];
+	uint8_t triggerByte = 0xAC;
+	uint8_t param1 = 0x33;
+	uint8_t param2 = 0x00;
+	unsigned char triggerBuffer[3];
+	triggerBuffer[0] = triggerByte;
+	triggerBuffer[1] = param1;
+	triggerBuffer[2] = param2;
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -125,20 +132,14 @@ int main(void)
 		//HAL_I2C_Master_Transmit(hi2c, DevAddress, pData, Size, Timeout);
 
 		//trigger measurement
-		uint8_t triggerByte = 0xAC;
-		uint8_t param1 = 0x33;
-		uint8_t param2 = 0x00;
-		unsigned char triggerBuffer[3];
-		triggerBuffer[0] = triggerByte;
-		triggerBuffer[1] = param1;
-		triggerBuffer[2] = param2;
+
 		HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, triggerBuffer, sizeof(triggerBuffer), 100);
 
 		//Wait for measurement
 		HAL_Delay(100);
 
 		//Receive measurement data
-		uint8_t readBuffer[7];
+
 		HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, readBuffer, sizeof(readBuffer), 100); //Muss ich das mehrfach aufrufen?
 		rawTemp = (readBuffer[3]&0x0F)<<16 | readBuffer[4]<<8 | readBuffer[5];
 
