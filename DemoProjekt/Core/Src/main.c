@@ -78,14 +78,11 @@ int main(void)
 
 	/* USER CODE BEGIN Init */
 
-	//uint8_t initByte = 0xbe;
-	uint8_t Byte1 = 0x71;
-	uint8_t Byte2;
 	uint8_t initBuffer[3];
 	initBuffer[0] = 0xbe;
 	initBuffer[1] = 0x08;
 	initBuffer[2] = 0x00;
-	uint8_t ansByte[7];
+	uint8_t ansByte;
 	uint32_t rawTemp;
 
 	/* USER CODE END Init */
@@ -104,9 +101,11 @@ int main(void)
 
 	//Temperature/Humidity sensor init
 	HAL_Delay(50);
-	HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, ansByte, sizeof(ansByte), 50);
-	HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, initBuffer, sizeof(initBuffer), 50);
-	HAL_Delay(10);
+	HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, &ansByte, sizeof(ansByte), 50);
+	if (!(ansByte >> 3 & 0x01)){
+		HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, initBuffer, sizeof(initBuffer), 50);
+		HAL_Delay(10);
+	}
 
 	/* USER CODE END 2 */
 
