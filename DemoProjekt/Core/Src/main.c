@@ -44,7 +44,7 @@ I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN PV */
 unsigned char buffer[5];
-float currentTemperature;
+float currentTemp;
 float threshold;
 /* USER CODE END PV */
 
@@ -78,20 +78,12 @@ int main(void)
 
 	/* USER CODE BEGIN Init */
 
-	uint8_t initBuffer[3];
-	initBuffer[0] = 0xbe;
-	initBuffer[1] = 0x08;
-	initBuffer[2] = 0x00;
-	uint8_t ansByte;
-	uint32_t rawTemp;
+	uint8_t initBuffer[3]={0xbe,0x08,0x00};
+	uint8_t triggerBuffer[3]={0xAC,0x33,0x00};
 	uint8_t readBuffer[7];
-	uint8_t triggerByte = 0xAC;
-	uint8_t param1 = 0x33;
-	uint8_t param2 = 0x00;
-	unsigned char triggerBuffer[3];
-	triggerBuffer[0] = triggerByte;
-	triggerBuffer[1] = param1;
-	triggerBuffer[2] = param2;
+	uint8_t stateByte;
+	uint32_t outputTemp;
+
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
@@ -104,12 +96,13 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_I2C1_Init();
+
 	/* USER CODE BEGIN 2 */
 
-	//Temperature/Humidity sensor init
+	//AHT20 Temperature and humidity sensor initialisation
 	HAL_Delay(50);
-	HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, &ansByte, sizeof(ansByte), 50);
-	if (!(ansByte >> 3 & 0x01)){
+	HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, &stateByte, sizeof(stateByte), 50);
+	if (!(stateByte >> 3 & 0x01)){
 		HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, initBuffer, sizeof(initBuffer), 50);
 		HAL_Delay(10);
 	}
@@ -120,34 +113,25 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		//LED shit
-		/**i = i + 1;
-	  HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
-	  HAL_Delay(100); // ms!
-	  HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(SWDIO_GPIO_Port, SWDIO_Pin, GPIO_PIN_SET);**/
-
-		//Sensor communication
-		//HAL_I2C_Master_Transmit(hi2c, DevAddress, pData, Size, Timeout);
-
-		//trigger measurement
-
+		//Trigger measurement
 		HAL_I2C_Master_Transmit(&hi2c1, 0x38<<1, triggerBuffer, sizeof(triggerBuffer), 100);
 
 		//Wait for measurement
 		HAL_Delay(100);
 
 		//Receive measurement data
+		HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, readBuffer, sizeof(readBuffer), 100);
+		if (!(stateByte >> 7 & 0x01)){
+			outputTemp = (readBuffer[3]&0x0F)<<16 | readBuffer[4]<<8 | readBuffer[5];
 
-		HAL_I2C_Master_Receive(&hi2c1, 0x38<<1, readBuffer, sizeof(readBuffer), 100); //Muss ich das mehrfach aufrufen?
-		rawTemp = (readBuffer[3]&0x0F)<<16 | readBuffer[4]<<8 | readBuffer[5];
+			//Calculate temperature in °C
+			currentTemp = (((float)outputTemp/1048576) * 200) - 50;
+		}
 
-		//Calculate temperature in °C
-		currentTemperature = (((float)rawTemp/1048576) * 200) - 50;
+
 
 		//check temperature
-		if (currentTemperature < threshold) //wenn gemessene Temperatur unter Schwellwert, LED blinken lassen
+		if (currentTemp < threshold) //wenn gemessene Temperatur unter Schwellwert, LED blinken lassen
 		{
 			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET); //Blaue LED an
 			HAL_Delay(500);
@@ -298,7 +282,7 @@ static void MX_GPIO_Init(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	// Interrupt: wenn blauer User-Knopf gedrückt wird, aktuelle Temperatur als Schwellwert setzen
-	threshold = currentTemperature ; //Schwellwert setzen
+	threshold = currentTemp ; //Schwellwert setzen
 }
 /* USER CODE END 4 */
 
